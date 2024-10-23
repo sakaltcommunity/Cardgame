@@ -133,6 +133,13 @@ function nextTurn() {
     }
 
     currentTurn++;
+
+    // 山札が空になった場合の勝者判定
+    if (deckStack.length === 0) {
+        let winner = players.reduce((prev, curr) => (prev.hp > curr.hp ? prev : curr));
+        logToGame(`ゲーム終了！勝者は${winner.name}です！ (HP: ${winner.hp})`);
+        document.getElementById('next-turn').disabled = true; // ボタンを無効化
+    }
 }
 
 document.getElementById('next-turn').addEventListener('click', nextTurn);
