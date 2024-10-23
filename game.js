@@ -4,23 +4,37 @@ class Card {
         this.attack = attack;
         this.defense = defense;
         this.hp = hp;
-        this.ability = ability;  // 特殊能力（例: クラッキング、金）
+        this.ability = ability;  // 特殊能力（例: クラッキング、金、範囲攻撃、ダブルスラッシュ）
     }
 
-    useAbility(target, user) {
+    useAbility(targets, user) {
+        let log = '';
         if (this.ability === 'ライフスティール') {
-            const stealAmount = Math.min(this.attack, target.hp);
-            target.hp -= stealAmount;
+            const stealAmount = Math.min(this.attack, targets[0].hp);
+            targets[0].hp -= stealAmount;
             user.hp += stealAmount;
-            return `${user.name}はライフスティールを使い、${stealAmount}HPを回復した！`;
+            log = `${user.name}はライフスティールを使い、${stealAmount}HPを回復した！`;
         } else if (this.ability === '金') {
-            target.defense += 3;  // 防御を3アップ
-            return `${user.name}は金のカードを使い、防御が3上がった！ (防御: ${target.defense})`;
+            targets[0].defense += 3;
+            log = `${user.name}は金のカードを使い、防御が3上がった！ (防御: ${targets[0].defense})`;
         } else if (this.ability === 'クラッキング') {
-            target.isCracked = true;  // クラッキング状態にする
-            return `${user.name}はクラッキングを使い、${target.name}にエフェクトを与えた！次のダメージが増加する。`;
+            targets[0].isCracked = true;
+            log = `${user.name}はクラッキングを使い、${targets[0].name}にエフェクトを与えた！次のダメージが増加する。`;
+        } else if (this.ability === '範囲攻撃') {
+            log = `${user.name}は範囲攻撃を行った！`;
+            targets.forEach(target => {
+                let damage = this.attack - target.defense;
+                damage = damage > 0 ? damage : 0;
+                target.hp -= damage;
+                log += ` ${target.name}に${damage}ダメージ！ (HP: ${target.hp})`;
+            });
+        } else if (this.ability === 'ダブルスラッシュ') {
+            let damage = this.attack - targets[0].defense;
+            damage = damage > 0 ? damage : 0;
+            log = `${user.name}はダブルスラッシュを使い、${targets[0].name}に${damage}ダメージを2回与えた！`;
+            targets[0].hp -= damage * 2;
         }
-        return '';
+        return log;
     }
 }
 
@@ -30,8 +44,8 @@ class Player {
         this.hp = 100;
         this.defense = 5;
         this.deck = [];
-        this.isCracked = false;  // クラッキングされたかどうか
-        this.isCPU = isCPU;  
+        this.isCracked = false;
+        this.isCPU = isCPU;
     }
 
     drawCard(deckStack) {
@@ -43,23 +57,29 @@ class Player {
         return "山札がなくなった";
     }
 
-    playCard(opponent) {
+    playCard(opponents) {
         if (this.deck.length > 0) {
             const card = this.deck.pop();
-            let damage = card.attack - opponent.defense;
-            
-            if (opponent.isCracked) {
-                damage *= 1.5;  // クラッキングの影響でダメージが1.5倍
-                opponent.isCracked = false;  // クラッキング状態を解除
-            }
+            let log = '';
+            if (card.ability === '範囲攻撃') {
+                log = card.useAbility(opponents, this);
+            } else {
+                let opponent = opponents[0];  // ターゲットは最初の1人
+                let damage = card.attack - opponent.defense;
 
-            damage = damage > 0 ? damage : 0;
-            opponent.hp -= damage;
-            let log = `${this.name}の${card.name}が${opponent.name}に${damage}ダメージを与えた！ (HP: ${opponent.hp})`;
+                if (opponent.isCracked) {
+                    damage *= 1.5;
+                    opponent.isCracked = false;
+                }
 
-            // 特殊能力の発動
-            if (card.ability) {
-                log += '\n' + card.useAbility(opponent, this);
+                damage = damage > 0 ? damage : 0;
+                opponent.hp -= damage;
+                log = `${this.name}の${card.name}が${opponent.name}に${damage}ダメージを与えた！ (HP: ${opponent.hp})`;
+
+                // 特殊能力の発動
+                if (card.ability) {
+                    log += '\n' + card.useAbility([opponent], this);
+                }
             }
 
             return log;
@@ -76,6 +96,8 @@ const cardList = [
     new Card("魔法使い", 8, 3, 15, 'ライフスティール'),
     new Card("商人", 7, 4, 18, '金'),
     new Card("クラッカー", 6, 2, 12, 'クラッキング'),
+    new Card("範囲攻撃", 9, 0, 0, '範囲攻撃'),
+    new Card("ダブルスラッシュ", 5, 0, 0, 'ダブルスラッシュ'),
 ];
 
 // 山札に60枚のカードを追加
@@ -100,14 +122,14 @@ function logToGame(message) {
 
 function nextTurn() {
     const currentPlayer = players[currentTurn % players.length];
-    const opponent = players[(currentTurn + 1) % players.length];
-    
+    const opponents = players.filter((p, idx) => idx !== currentTurn % players.length);
+
     if (currentPlayer.isCPU) {
         logToGame(currentPlayer.drawCard(deckStack));
-        logToGame(currentPlayer.playCard(opponent));
+        logToGame(currentPlayer.playCard(opponents));
     } else {
         logToGame(currentPlayer.drawCard(deckStack));
-        logToGame(currentPlayer.playCard(opponent));
+        logToGame(currentPlayer.playCard(opponents));
     }
 
     currentTurn++;
