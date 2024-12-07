@@ -48,7 +48,7 @@ class Player {
     constructor(name, isCPU = false) {
         this.name = name;
         this.hp = 100;
-        this.defense = 5;
+        this.defense = -1;
         this.deck = [];
         this.isCracked = false;
         this.isCPU = isCPU;
