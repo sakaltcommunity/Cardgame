@@ -33,6 +33,12 @@ class Card {
             damage = damage > 0 ? damage : 0;
             log = `${user.name}はダブルスラッシュを使い、${targets[0].name}に${damage}ダメージを2回与えた！`;
             targets[0].hp -= damage * 2;
+        } else if (this.ability === 'ランダムスラッシュ') {
+            let damage = this.attack - (targets[0].defense  / 1.6);
+            targets[0].isCracked = true;
+            damage = damage > 0 ? damage : 0;
+            log = `${user.name}はランダムスラッシュを使い、${targets[0].name}に${damage}ダメージをランダム回与えた！`;
+            targets[0].hp -= damage * Math.random() * 5.25 / ( targets[0].defense / 15);
         }
         return log;
     }
@@ -92,7 +98,8 @@ class Player {
 const deckStack = [];
 
 const cardList = [
-    new Card("戦士", 10, 5, 20, null),
+    new Card("戦士", 10, 5, 1, null),
+    new Card("ランダムスラッシュ", 2, 0, 1, null),
     new Card("魔法使い", 8, 3, 15, 'ライフスティール'),
     new Card("商人", 7, 4, 18, '金'),
     new Card("クラッカー", 6, 2, 12, 'クラッキング'),
